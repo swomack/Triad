@@ -3,7 +3,7 @@
  */
 
 
-function Triad() {
+function Triad(parent) {
 
 
     let self = this;
@@ -16,6 +16,9 @@ function Triad() {
     let componentPerTriangle = 3;
 
     self.triadObject = new THREE.Object3D();
+    self.triadObject.add(createTriad());
+    self.triadObject.position.set(0, 0, 0);
+    parent.add(self.triadObject);
 
     function createTriad() {
         let geometry = createTriadGeometry();
@@ -27,7 +30,14 @@ function Triad() {
     }
 
     function createTriadMaterial() {
+        let material = new THREE.MeshPhongMaterial({
+            vertexColors: THREE.VertexColors,
+            shininess: 0.1,
+            specular: 0x111111,
+            side: THREE.DoubleSide
+        });
 
+        return material;
     }
 
     function createTriadGeometry() {
@@ -39,7 +49,8 @@ function Triad() {
 
         geometry.addAttribute('position', new THREE.BufferAttribute(positionArray, 3));
         geometry.addAttribute('color', new THREE.BufferAttribute(colorArray, 3));
-        geometry.addIndex(indexArray);
+        geometry.setIndex(new THREE.BufferAttribute(indexArray, 1));
+        geometry.computeVertexNormals();
 
         return geometry;
     }
@@ -67,12 +78,13 @@ function Triad() {
 
     function fillYAxisPositions(positionArray) {
         let rotationMatrix = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3().set(0, 0, 1), THREE.Math.degToRad(90));
-        fillAxisPositions(positionArray, 0, positionPerAxis * componentPerPosition, rotationMatrix);
+        fillAxisPositions(positionArray, positionPerAxis * componentPerPosition, rotationMatrix);
     }
 
     function fillZAxisPositions(positionArray) {
-        let rotationMatrix = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3().set(0, 1, 0), THREE.Math.degToRad(90));
-        fillAxisPositions(positionArray, 0, 2 * positionPerAxis * componentPerPosition, rotationMatrix);
+        let rotationMatrix = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3().set(0, 0, 1), THREE.Math.degToRad(-90));
+        rotationMatrix.multiply(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3().set(0, 1, 0), THREE.Math.degToRad(-90)));
+        fillAxisPositions(positionArray, 2 * positionPerAxis * componentPerPosition, rotationMatrix);
     }
 
     function fillAxisPositions(positionArray, start, transformationMatrix) {
@@ -94,7 +106,7 @@ function Triad() {
             let position = allPositions[count];
 
             if (transformationMatrix)
-                position.applyMatrix(transformationMatrix);
+                position.applyMatrix4(transformationMatrix);
 
             positionArray[i + 0] = position.x;
             positionArray[i + 1] = position.y;
@@ -183,24 +195,24 @@ function Triad() {
     function fillXAxisIndexArray(indexArray) {
         let indexArrayTemplate = getIndexArrayTemplate();
 
-        fillIndexArrayFromTemplate(indexArray, indexArrayTemplate, 0, trianglePerAxis * componentPerTriangle);
+        fillIndexArrayFromTemplate(indexArray, indexArrayTemplate, 0, trianglePerAxis * componentPerTriangle, 0);
     }
 
     function fillYAxisIndexArray(indexArray) {
         let indexArrayTemplate = getIndexArrayTemplate();
 
-        fillIndexArrayFromTemplate(indexArray, indexArrayTemplate, trianglePerAxis * componentPerTriangle, 2 * trianglePerAxis * componentPerTriangle);
+        fillIndexArrayFromTemplate(indexArray, indexArrayTemplate, trianglePerAxis * componentPerTriangle, 2 * trianglePerAxis * componentPerTriangle, positionPerAxis);
     }
 
     function fillZAxisIndexArray(indexArray) {
         let indexArrayTemplate = getIndexArrayTemplate();
 
-        fillIndexArrayFromTemplate(indexArray, indexArrayTemplate, 2 * trianglePerAxis * componentPerTriangle, 3 * trianglePerAxis * componentPerTriangle);
+        fillIndexArrayFromTemplate(indexArray, indexArrayTemplate, 2 * trianglePerAxis * componentPerTriangle, 3 * trianglePerAxis * componentPerTriangle, 2 * positionPerAxis);
     }
 
-    function fillIndexArrayFromTemplate(indexArray, indexArrayTemplate, start, end) {
+    function fillIndexArrayFromTemplate(indexArray, indexArrayTemplate, start, end, offset) {
         for (let i = start; i < end; i++)
-            indexArray[i] = indexArrayTemplate[i - start];
+            indexArray[i] = indexArrayTemplate[i - start] + offset;
     }
 
     function getIndexArrayTemplate() {
@@ -250,13 +262,13 @@ function Triad() {
         indexArrayTemplate.push(8);
         indexArrayTemplate.push(7);
 
-        indexArrayTemplate.push(3);
-        indexArrayTemplate.push(9);
         indexArrayTemplate.push(10);
-
-        indexArrayTemplate.push(3);
-        indexArrayTemplate.push(2);
         indexArrayTemplate.push(9);
+        indexArrayTemplate.push(3);
+
+        indexArrayTemplate.push(9);
+        indexArrayTemplate.push(2);
+        indexArrayTemplate.push(3);
 
         indexArrayTemplate.push(4);
         indexArrayTemplate.push(13);
